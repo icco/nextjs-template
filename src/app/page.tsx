@@ -6,7 +6,7 @@ export const metadata: Metadata = { alternates: { canonical: "/" } }
 
 export default function Home() {
   return (
-    <main id="main" className="grid min-h-screen place-items-center px-6 py-20">
+    <div className="grid place-items-center px-6 py-20">
       <div className="max-w-2xl space-y-6 text-center">
         <p className="badge badge-outline">Made with care</p>
         <h1 className="text-5xl font-bold tracking-tight sm:text-7xl">
@@ -17,6 +17,6 @@ export default function Home() {
           Something lovely is on its way.
         </p>
       </div>
-    </main>
+    </div>
   )
 }

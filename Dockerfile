@@ -4,8 +4,10 @@ WORKDIR /app
 
 FROM base AS deps
 RUN npm install --global pnpm@11.2.2
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --store-dir=/pnpm/store
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN --mount=type=secret,id=npm_token,env=NODE_AUTH_TOKEN,required=true \
+    --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --store-dir=/pnpm/store
 
 FROM deps AS builder
 COPY . .

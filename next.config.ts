@@ -1,5 +1,7 @@
 import type { NextConfig } from "next"
 
+import { site } from "./src/lib/site"
+
 const isDevelopment = process.env.NODE_ENV === "development"
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -9,7 +11,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  `connect-src 'self'${isDevelopment ? " ws: wss:" : ""}`,
+  `connect-src 'self'${site.analyticsPath ? " https://reportd.natwelch.com" : ""}${isDevelopment ? " ws: wss:" : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
