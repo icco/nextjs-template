@@ -57,33 +57,3 @@ are optional additions when a project needs them. The starter installs using
 the public npm registry without a GitHub Packages token. If adding the shared
 package, follow `natwelch.com`'s scoped `.npmrc` and BuildKit secret pattern;
 configure the project's reportd destination deliberately.
-
-## Docker and mist
-
-```sh
-docker build -t my-site .
-docker run --rm -p 8080:8080 my-site
-# In another terminal:
-SMOKE_BASE_URL=http://localhost:8080 pnpm test:smoke
-```
-
-The runtime is non-root and includes a health check. Dependencies and the build
-toolchain stay in build stages. The image needs no application secrets to build.
-
-To deploy through `icco/icco.me`, add the domain to `common_domains` and a mist
-Compose service (adjust the name/domain):
-
-```yaml
-services:
-  my-site:
-    image: ghcr.io/icco/my-site:main
-    restart: unless-stopped
-    networks: [caddy]
-    labels:
-      caddy: example.com, www.example.com
-      caddy.reverse_proxy: "{{upstreams 8080}}"
-```
-
-Make the GHCR package public or configure authenticated pulls on mist. Enable
-Porkbun API access for the domain so OpenTofu can manage delegation. Merge the
-infrastructure PR and deploy using the `icco.me` runbook.
