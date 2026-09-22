@@ -3,6 +3,8 @@ import { spawn } from "node:child_process"
 import { once } from "node:events"
 import { setTimeout } from "node:timers/promises"
 
+import { JSDOM } from "jsdom"
+
 // Set SMOKE_BASE_URL to test a running Docker container instead.
 const external = process.env.SMOKE_BASE_URL
 const port = process.env.SMOKE_PORT || "18080"
@@ -46,7 +48,36 @@ try {
     home.headers.get("content-security-policy") || "",
     /unsafe-eval/
   )
-  assert.match(await home.text(), /<h1[\s>]/)
+  const document = new JSDOM(await home.text()).window.document
+  assert.ok(document.querySelector("h1"))
+  assert.equal(document.querySelectorAll("main").length, 1)
+  assert.ok(document.querySelector('main#main[tabindex="-1"]'))
+  assert.ok(document.querySelector('header a[aria-label$=" home"] svg'))
+  assert.ok(document.querySelector('header input[type="checkbox"]'))
+  assert.ok(document.querySelector('footer a[title="Source Code"]'))
+  assert.match(document.querySelector("footer").textContent, /Nat Welch/)
+  for (const theme of ["light", "dark"]) {
+    const themed = await fetch(base, { headers: { cookie: `theme=${theme}` } })
+    assert.equal(themed.status, 200)
+    const themedDom = new JSDOM(await themed.text(), {
+      url: base,
+      runScripts: "outside-only",
+      pretendToBeVisual: true,
+    })
+    themedDom.window.document.cookie = `theme=${theme}`
+    // Run only the pre-hydration theme script, not Next.js bootstrap scripts.
+    const themeScript = Array.from(
+      themedDom.window.document.querySelectorAll("script")
+    ).find((script) => script.textContent.includes('"data-theme"'))
+    assert.ok(themeScript, "Theme initialization is included in the response")
+    themedDom.window.eval(themeScript.textContent)
+    assert.equal(
+      themedDom.window.document.documentElement.getAttribute("data-theme"),
+      theme,
+      `The saved ${theme} preference is applied before hydration`
+    )
+    themedDom.window.close()
+  }
   const health = await fetch(`${base}/healthz`)
   assert.deepEqual(await health.json(), { status: "ok" })
   assert.equal(health.headers.get("cache-control"), "no-store")
@@ -57,7 +88,12 @@ try {
   assert.equal(sitemap.status, 200)
   assert.match(await sitemap.text(), /<urlset/)
   assert.equal((await fetch(`${base}/icon.svg`)).status, 200)
-  assert.equal((await fetch(`${base}/this-page-does-not-exist`)).status, 404)
+  const missing = await fetch(`${base}/this-page-does-not-exist`)
+  assert.equal(missing.status, 404)
+  const missingDocument = new JSDOM(await missing.text()).window.document
+  assert.equal(missingDocument.querySelectorAll("main").length, 1)
+  assert.ok(missingDocument.querySelector("header"))
+  assert.ok(missingDocument.querySelector("footer"))
   console.log("Production smoke checks passed.")
 } finally {
   if (server && server.exitCode === null) {
